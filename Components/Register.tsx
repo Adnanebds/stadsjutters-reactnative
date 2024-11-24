@@ -16,7 +16,7 @@ const RegistrationPage: React.FC = () => {
     }
 
     try {
-      const response = await axios.post('https://fdae-145-44-78-113.ngrok-free.app/api/users', {
+      const response = await axios.post('http://localhost:4000/api/users', {
         Name: name,
         Email: email,
         Password: password,

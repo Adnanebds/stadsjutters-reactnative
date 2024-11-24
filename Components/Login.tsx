@@ -27,7 +27,7 @@ const LoginPage = () => {
     }
 
     try {
-      const response = await axios.post('https://fdae-145-44-78-113.ngrok-free.app/api/login', {
+      const response = await axios.post('https://8ca0-86-93-44-129.ngrok-free.app/api/login', {
         Email: email,
         Password: password
       });
@@ -36,7 +36,7 @@ const LoginPage = () => {
 
       if (response.status === 200) {
         Alert.alert('Success', 'Login successful!');
-        // Handle successful login (e.g., store token, navigate to main screen)
+        onWelcomeTapped()
       } else {
         Alert.alert('Error', 'Invalid email or password');
       }
