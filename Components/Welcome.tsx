@@ -8,21 +8,63 @@ import {
   Image,
   StyleSheet,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
+import axios from 'axios';
+import { useState, useEffect } from 'react';
 
 type WelcomeProps = {
   navigation: NavigationProp<any>; // Replace 'any' with your specific navigation type if using a defined navigator
 };
 
+interface Spot {
+  id: number;
+  title: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+  Photo: string | null;
+}
+
 const Welcome: React.FC<WelcomeProps> = ({ navigation }) => {
-  const data = ['Metalen plaat', 'Metaal voor auto', 'Auto motor', 'Plastic'];
+  const [data, setData] = useState<Spot[]>([]); // State to store fetched data
+
+
+  const GetSpots = async () => {
+    try {
+        const response = await axios.get('https://1a24-86-93-44-129.ngrok-free.app/api/spot', 
+          
+        {
+        });
+        const data: Spot[] = response.data;
+        setData(data); 
+        console.log('Response:', response.data);
+        
+        if (response.status === 200) {
+            console.log('Success vol data opgehaald!');
+        } else {
+          console.log('Data lukt niet met ophalen');
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        if (error instanceof Error) {
+            Alert.alert('Error', `An error occurred while logging in: ${error.message}`);
+        } else {
+            Alert.alert('Error', 'An unknown error occurred while logging in');
+        }
+    }
+};
+
+useEffect(() => {
+  GetSpots(); // Call the API when the component mounts
+}, []); // Empty dependency array to call once on mount
 
   return (
     <View style={styles.container}>
       {/* Header Section */}
       <View style={styles.header}>
-        <Text style={styles.headerTextSmall}>Empty State</Text>
         <Text style={styles.headerTextLarge}>Spots</Text>
       </View>
 
@@ -35,30 +77,35 @@ const Welcome: React.FC<WelcomeProps> = ({ navigation }) => {
 
       {/* Items Grid Section */}
       <FlatList
-        data={data}
+        data={data} // data is now of type Spot[]
         keyExtractor={(item, index) => index.toString()}
         contentContainerStyle={styles.flatListContainer}
         numColumns={1}
         renderItem={({ item }) => (
           <View style={styles.itemCard}>
-            <Image
-              source={{ uri: '../assets/placeholder_image.png' }}
-              style={styles.itemImage}
-            />
-            <Text style={styles.itemText}>{item}</Text>
+            {item.Photo ? (
+              <Image
+                source={{ uri: `https://1a24-86-93-44-129.ngrok-free.app/uploads/${item.Photo}` }} // Construct full URL for image source
+                style={styles.itemImage}
+              />
+            ) : (
+              <Text>No Image Available</Text> // Fallback if no photo is available
+            )}
+            <Text style={styles.itemText}>{item.title}</Text> {/* Accessing item.title */}
           </View>
         )}
       />
 
+
       {/* Bottom Navigation Bar */}
       <View style={styles.bottomNav}>
-        <View style={styles.navItem}>
-          <Image
-            source={require('../assets/explorelogo.png' )}
-            style={styles.navIcon}
-          />
-          <Text style={styles.navText}>Explore</Text>
-        </View>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Explore')}>
+        <Image
+        source={require('../assets/explorelogo.png')}
+        style={styles.navIcon}
+        />
+          <Text style={styles.navTextBold}>Explore</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('SpotAanmaken')}>
         <Image
         source={require('../assets/foursquares.png')}
