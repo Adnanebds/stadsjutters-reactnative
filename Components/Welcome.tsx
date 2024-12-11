@@ -1,18 +1,7 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  Button,
-  TextInput,
-  FlatList,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Button, TextInput, FlatList, Image, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 import axios from 'axios';
-import { useState, useEffect } from 'react';
 
 type WelcomeProps = {
   navigation: NavigationProp<any>; // Replace 'any' with your specific navigation type if using a defined navigator
@@ -31,35 +20,27 @@ interface Spot {
 const Welcome: React.FC<WelcomeProps> = ({ navigation }) => {
   const [data, setData] = useState<Spot[]>([]); // State to store fetched data
 
-
   const GetSpots = async () => {
     try {
-        const response = await axios.get('https://1a24-86-93-44-129.ngrok-free.app/api/spot', 
-          
-        {
-        });
-        const data: Spot[] = response.data;
-        setData(data); 
-        console.log('Response:', response.data);
-        
-        if (response.status === 200) {
-            console.log('Success vol data opgehaald!');
-        } else {
-          console.log('Data lukt niet met ophalen');
-        }
-    } catch (error) {
-        console.error('Login error:', error);
-        if (error instanceof Error) {
-            Alert.alert('Error', `An error occurred while logging in: ${error.message}`);
-        } else {
-            Alert.alert('Error', 'An unknown error occurred while logging in');
-        }
-    }
-};
+      const response = await axios.get('https://1a24-86-93-44-129.ngrok-free.app/api/spot');
+      const data: Spot[] = response.data;
+      setData(data);
+      console.log('Response:', response.data);
 
-useEffect(() => {
-  GetSpots(); // Call the API when the component mounts
-}, []); // Empty dependency array to call once on mount
+      if (response.status === 200) {
+        console.log('Success: Data fetched successfully');
+      } else {
+        console.log('Error: Unable to fetch data');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      Alert.alert('Error', 'An error occurred while fetching data');
+    }
+  };
+
+  useEffect(() => {
+    GetSpots(); // Call the API when the component mounts
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -96,30 +77,25 @@ useEffect(() => {
         )}
       />
 
-
       {/* Bottom Navigation Bar */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Explore')}>
-        <Image
-        source={require('../assets/explorelogo.png')}
-        style={styles.navIcon}
-        />
+          <Image source={require('../assets/explorelogo.png')} style={styles.navIcon} />
           <Text style={styles.navTextBold}>Explore</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('SpotAanmaken')}>
-        <Image
-        source={require('../assets/foursquares.png')}
-        style={styles.navIcon}
-        />
+          <Image source={require('../assets/foursquares.png')} style={styles.navIcon} />
           <Text style={styles.navTextBold}>Spots</Text>
         </TouchableOpacity>
-        <View style={styles.navItem}>
-          <Image
-            source={require('../assets/profile1.png' )}
-            style={styles.navIcon}
-          />
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
+          <Image source={require('../assets/profile1.png')} style={styles.navIcon} />
           <Text style={styles.navText}>Profile</Text>
-        </View>
+        </TouchableOpacity>
+        {/* New Chat Button */}
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ChatList')}>
+          <Image source={require('../assets/chat.png')} style={styles.navIcon} />
+          <Text style={styles.navTextBold}>Chat</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
