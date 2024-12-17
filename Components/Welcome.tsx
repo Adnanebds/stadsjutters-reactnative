@@ -1,14 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, TextInput, FlatList, Image, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  FlatList,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  SafeAreaView,
+  StatusBar,
+} from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 import axios from 'axios';
+import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 
 type WelcomeProps = {
-  navigation: NavigationProp<any>; // Replace 'any' with your specific navigation type if using a defined navigator
+  navigation: NavigationProp<any>;
 };
 
 interface Spot {
-  id: number;
+  MaterialID: number;
   title: string;
   description: string;
   latitude: number;
@@ -18,149 +30,183 @@ interface Spot {
 }
 
 const Welcome: React.FC<WelcomeProps> = ({ navigation }) => {
-  const [data, setData] = useState<Spot[]>([]); // State to store fetched data
+  const [data, setData] = useState<Spot[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const GetSpots = async () => {
+    setRefreshing(true);
     try {
       const response = await axios.get('https://1a24-86-93-44-129.ngrok-free.app/api/spot');
-      const data: Spot[] = response.data;
-      setData(data);
-      console.log('Response:', response.data);
-
-      if (response.status === 200) {
-        console.log('Success: Data fetched successfully');
-      } else {
-        console.log('Error: Unable to fetch data');
-      }
+      const validData = response.data.filter((item: { MaterialID: any; }) => item && typeof item.MaterialID !== 'undefined')
+        .map((item: Spot) => ({
+          ...item,
+          Photo: item.Photo ? item.Photo : null
+        }));
+      setData(validData);
     } catch (error) {
-      console.error('Error:', error);
-      Alert.alert('Error', 'An error occurred while fetching data');
+      console.error('Error fetching spots:', error);
+      Alert.alert('Error', 'Failed to fetch spots. Please try again.');
+    } finally {
+      setRefreshing(false);
     }
   };
+  
 
   useEffect(() => {
-    GetSpots(); // Call the API when the component mounts
+    GetSpots();
   }, []);
 
+  const renderSpotItem = ({ item }: { item: Spot }) => (
+    <TouchableOpacity style={styles.spotCard}>
+      {item.Photo ? (
+        <Image
+          source={{ uri: item.Photo }}
+          style={styles.spotImage}
+          onError={(error) => console.error('Image loading error:', error.nativeEvent.error)}
+        />
+      ) : (
+        <Image
+          source={require('../assets/no-image.png')}
+          style={styles.spotImage}
+        />
+      )}
+      <View style={styles.spotDetails}>
+        <Text style={styles.spotTitle}>{item.title}</Text>
+        <Text style={styles.spotDescription} numberOfLines={2}>{item.description}</Text>
+        <Text style={styles.spotStatus}>{item.status}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+  
+
   return (
-    <View style={styles.container}>
-      {/* Header Section */}
-      <View style={styles.header}>
-        <Text style={styles.headerTextLarge}>Spots</Text>
-      </View>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F5F7FA" />
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Explore Spots</Text>
+        </View>
 
-      {/* Search and Filter Section */}
-      <View style={styles.searchFilterContainer}>
-        <Button title="Sorteren" onPress={() => console.log('Sort button pressed')} />
-        <TextInput style={styles.searchBar} placeholder="Search" />
-        <Button title="Filter (2)" onPress={() => console.log('Filter button pressed')} />
-      </View>
+        <View style={styles.searchFilterContainer}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => console.log('Sort pressed')}>
+            <MaterialIcons name="sort" size={20} color="#4A5568" />
+            <Text style={styles.iconButtonText}>Sort</Text>
+          </TouchableOpacity>
+          <TextInput
+            style={styles.searchBar}
+            placeholder="Search for spots..."
+            placeholderTextColor="#A0AEC0"
+          />
+          <TouchableOpacity style={styles.iconButton} onPress={() => console.log('Filter pressed')}>
+            <FontAwesome name="filter" size={20} color="#4A5568" />
+            <Text style={styles.iconButtonText}>Filter</Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* Items Grid Section */}
-      <FlatList
-        data={data} // data is now of type Spot[]
-        keyExtractor={(item, index) => index.toString()}
-        contentContainerStyle={styles.flatListContainer}
-        numColumns={1}
-        renderItem={({ item }) => (
-          <View style={styles.itemCard}>
-            {item.Photo ? (
-              <Image
-                source={{ uri: `https://1a24-86-93-44-129.ngrok-free.app/uploads/${item.Photo}` }} // Construct full URL for image source
-                style={styles.itemImage}
-              />
-            ) : (
-              <Text>No Image Available</Text> // Fallback if no photo is available
-            )}
-            <Text style={styles.itemText}>{item.title}</Text> {/* Accessing item.title */}
-          </View>
-        )}
+        <FlatList
+        data={data}
+        keyExtractor={(item) => item.MaterialID?.toString() || Math.random().toString()}
+        renderItem={renderSpotItem}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+        refreshing={refreshing}
+        onRefresh={GetSpots}
       />
+      </View>
 
-      {/* Bottom Navigation Bar */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Explore')}>
           <Image source={require('../assets/explorelogo.png')} style={styles.navIcon} />
-          <Text style={styles.navTextBold}>Explore</Text>
+          <Text style={styles.navText}>Explore</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('SpotAanmaken')}>
           <Image source={require('../assets/foursquares.png')} style={styles.navIcon} />
-          <Text style={styles.navTextBold}>Spots</Text>
+          <Text style={styles.navText}>Spots</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
+        <TouchableOpacity style={styles.navItem}>
           <Image source={require('../assets/profile1.png')} style={styles.navIcon} />
           <Text style={styles.navText}>Profile</Text>
         </TouchableOpacity>
         {/* New Chat Button */}
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ChatList')}>
           <Image source={require('../assets/chat.png')} style={styles.navIcon} />
-          <Text style={styles.navTextBold}>Chat</Text>
+          <Text git >Chat</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#F7F8FA',
-    padding: 20,
+    padding: 16,
   },
   header: {
-    marginVertical: 10,
+    marginBottom: 16,
   },
-  headerTextSmall: {
-    fontSize: 16,
+  headerTitle: {
+    fontSize: 28,
     fontWeight: 'bold',
-  },
-  headerTextLarge: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginVertical: 5,
+    color: '#1A202C',
   },
   searchFilterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 10,
-    gap: 10,
+    marginBottom: 16,
   },
-  searchBar: {
+  listContainer: {
+    paddingBottom: 16,
+  },
+  spotCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginBottom: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  spotImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 16,
+  },
+  spotDetails: {
     flex: 1,
-    height: 40,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
   },
-  flatListContainer: {
-    marginVertical: 10,
+  spotTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2D3748',
+    marginBottom: 4,
   },
-  itemCard: {
-    backgroundColor: '#E8E8F1',
-    borderRadius: 8,
-    margin: 5,
-    height: 100,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 10,
+  spotDescription: {
+    fontSize: 14,
+    color: '#4A5568',
+    marginBottom: 4,
   },
-  itemImage: {
-    width: 40,
-    height: 40,
-    marginBottom: 5,
-  },
-  itemText: {
+  spotStatus: {
     fontSize: 12,
-    textAlign: 'center',
+    color: '#718096',
+    fontWeight: '500',
   },
   bottomNav: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    height: 70,
-    alignItems: 'center',
     justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    height: 60,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
   },
   navItem: {
     alignItems: 'center',
@@ -168,15 +214,44 @@ const styles = StyleSheet.create({
   navIcon: {
     width: 24,
     height: 24,
+    marginBottom: 4,
   },
   navText: {
-    fontSize: 10,
-    color: '#9CA3AF',
+    fontSize: 12,
+    color: '#718096',
   },
-  navTextBold: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#000000',
+  iconButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    marginHorizontal: 4,
+  },
+  iconButtonText: {
+    marginLeft: 4,
+    fontSize: 14,
+    color: '#4A5568',
+  },
+  searchBar: {
+    flex: 1,
+    height: 40,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginHorizontal: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
 });
 
