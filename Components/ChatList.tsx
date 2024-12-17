@@ -29,9 +29,9 @@ const ChatList: React.FC = () => {
   useEffect(() => {
     const fetchChats = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/messages"); // Replace with your API URL
+        const response = await fetch("http://10.0.2.2:5000/api/messages"); // Replace with your API URL
         if (!response.ok) {
-          throw new Error("Failed to fetch chats");
+          throw new Error("Failed to fetch chats2");
         }
         const data = await response.json();
         setChats(data); // Update the state with fetched data
