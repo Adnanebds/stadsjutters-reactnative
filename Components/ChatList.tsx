@@ -8,44 +8,64 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import { useNavigation, NavigationProp } from "@react-navigation/native"; // For navigation
-import { RootStackParamList } from './types';
-
+import { useNavigation, NavigationProp } from "@react-navigation/native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { RootStackParamList } from "./types";
 
 type ChatItem = {
-  id: string;
-  name: string;
-  lastMessage: string;
-  avatar: string;
-  timestamp: string;
+  MessageID: number;
+  SenderID: number;
+  ReceiverID: number;
+  MessageText: string;
+  SentAt: string;
+  ReadStatus: number;
 };
 
 const ChatList: React.FC = () => {
-  const [chats, setChats] = useState<ChatItem[]>([]); // Store chat data
-  const [loading, setLoading] = useState<boolean>(true); // Loading state
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>(); // Hook for navigation with typing
+  const [chats, setChats] = useState<ChatItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [userSession, setUserSession] = useState<string | null>(null);
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
-  // Fetch chat data
+  // First, get the user session
+  useEffect(() => {
+    const getUserSession = async () => {
+      try {
+        const session = await AsyncStorage.getItem('userSession');
+        setUserSession(session);
+      } catch (error) {
+        console.error("Error getting user session:", error);
+      }
+    };
+    getUserSession();
+  }, []);
+
+  // Then fetch chats
   useEffect(() => {
     const fetchChats = async () => {
+      if (!userSession) return;
+      
       try {
-        const response = await fetch("http://10.0.2.2:5000/api/messages"); // Replace with your API URL
+        const response = await fetch(
+          "https://ece3-86-93-44-129.ngrok-free.app/api/messages"
+        );
         if (!response.ok) {
-          throw new Error("Failed to fetch chats2");
+          throw new Error("Failed to fetch chats");
         }
         const data = await response.json();
-        setChats(data); // Update the state with fetched data
+        setChats(data);
       } catch (error) {
         console.error("Error fetching chats:", error);
       } finally {
-        setLoading(false); // Set loading to false once done
+        setLoading(false);
       }
     };
 
-    fetchChats(); // Call the function to fetch chats
-  }, []); // Empty dependency array = runs once when component mounts
+    if (userSession) {
+      fetchChats();
+    }
+  }, [userSession]);
 
-  // Show loading spinner while data is being fetched
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -54,31 +74,48 @@ const ChatList: React.FC = () => {
     );
   }
 
-  // Render each chat item
+  const handleChatPress = (receiverId: number) => {
+    if (!userSession) {
+      console.error("No user session found");
+      return;
+    }
+
+    navigation.navigate("ChatScreen", {
+      senderId: userSession,  // Pass the user session directly
+      receiverId: receiverId.toString()
+    });
+  };
+
   const renderItem = ({ item }: { item: ChatItem }) => (
     <TouchableOpacity
       style={styles.chatRow}
-      onPress={() => navigation.navigate('ChatScreen', { userId: item.id })} // Now works with correct types
+      onPress={() => handleChatPress(item.ReceiverID)}
     >
-      <Image source={{ uri: item.avatar }} style={styles.avatar} />
+      <Image
+        source={{ uri: "https://via.placeholder.com/50" }}
+        style={styles.avatar}
+      />
       <View style={styles.chatDetails}>
-        <Text style={styles.username}>{item.name}</Text>
-        <Text style={styles.lastMessage}>{item.lastMessage}</Text>
+        <Text style={styles.username}>{`User ${item.ReceiverID}`}</Text>
+        <Text style={styles.lastMessage}>{item.MessageText}</Text>
       </View>
-      <Text style={styles.timestamp}>{item.timestamp}</Text>
+      <Text style={styles.timestamp}>
+        {new Date(item.SentAt).toLocaleString()}
+      </Text>
     </TouchableOpacity>
   );
 
   return (
     <FlatList
       data={chats}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => item.MessageID.toString()}
       renderItem={renderItem}
       contentContainerStyle={styles.listContainer}
     />
   );
 };
 
+// Styles remain the same
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,

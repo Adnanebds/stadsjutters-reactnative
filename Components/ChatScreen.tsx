@@ -1,45 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
-import { useNavigation } from "@react-navigation/native";
 
 type Message = {
     id: string;
-    sender: 'me' | 'other';
+    sender: string;
     text: string;
 };
 
 const ChatScreen = ({ route }: { route: any }) => {
-    const [messages, setMessages] = useState<Message[]>([]); // State to store messages
-    const [input, setInput] = useState<string>(''); // State to store input message
-    const { userId } = route.params; // Retrieve userId from route parameters
-    const navigation = useNavigation();
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [input, setInput] = useState<string>('');
+    const { senderId, receiverId } = route.params;
 
-    // Fetch messages from the server (GET)
     const fetchMessages = async () => {
+        
         try {
-            const response = await axios.get(`http://localhost:5000/api/messages/${userId}`);
-            setMessages(response.data); // Set messages to the state
+            const senderData = JSON.parse(senderId);
+            const userId = senderData.userId;
+            
+            const response = await axios.get(`https://ece3-86-93-44-129.ngrok-free.app/api/messages/${userId}`);
+            console.log(response);
+       
+            // Map backend response to match the expected structure in frontend
+            const mappedMessages = response.data.map((msg: any) => ({
+                id: String(msg.MessageID),
+                sender: msg.SenderID === userId,
+                text: msg.MessageText,
+            }));
+            setMessages(mappedMessages);
         } catch (error) {
             console.error("Error fetching messages:", error);
             Alert.alert('Error', 'Could not fetch messages');
         }
     };
 
-    // Send message to the server (POST)
     const sendMessage = async () => {
         if (input.trim() !== '') {
+            const senderUserId = JSON.parse(senderId).userId.toString();
             try {
                 const newMessage = {
-                    sender: 'me',
+                    sender: parseInt(senderUserId),
+                    userId: parseInt(receiverId),
                     text: input,
-                    userId: userId, // Send userId to associate the message with the chat
                 };
 
-                // POST new message to the backend
-                await axios.post('http://localhost:5000/api/messages', newMessage);
-                setMessages((prev) => [...prev, { id: String(Date.now()), sender: 'me', text: input }]); // Update local messages
-                setInput(''); // Clear input after sending
+                console.log("Sending message:", newMessage);
+                await axios.post('https://ece3-86-93-44-129.ngrok-free.app/api/messages', newMessage);
+                setInput('');  // Clear the input field after sending
+                fetchMessages(); // Optionally, fetch updated messages
             } catch (error) {
                 console.error("Error sending message:", error);
                 Alert.alert('Error', 'Could not send message');
@@ -47,14 +56,20 @@ const ChatScreen = ({ route }: { route: any }) => {
         }
     };
 
-    // Fetch messages when component mounts
     useEffect(() => {
-        fetchMessages();
-    }, [userId]); // Refetch if userId changes
+        fetchMessages(); // Fetch messages immediately when the component mounts
 
-    // Render each message in the list
+        // Set up an interval to fetch messages every 5 seconds
+        const intervalId = setInterval(() => {
+            fetchMessages();
+        }, 2000);
+
+        // Clean up the interval when the component unmounts
+        return () => clearInterval(intervalId);
+    }, [senderId]);
+
     const renderMessage = ({ item }: { item: Message }) => (
-        <View style={[styles.messageBubble, item.sender === 'me' ? styles.myMessage : styles.otherMessage]}>
+        <View style={[styles.messageBubble, item.sender ? styles.myMessage : styles.otherMessage]}>
             <Text style={styles.messageText}>{item.text}</Text>
         </View>
     );
@@ -66,15 +81,19 @@ const ChatScreen = ({ route }: { route: any }) => {
                 renderItem={renderMessage}
                 keyExtractor={(item) => item.id}
                 style={styles.messagesContainer}
+                inverted
             />
             <View style={styles.inputContainer}>
                 <TextInput
                     style={styles.input}
                     value={input}
-                    onChangeText={setInput} // Update input state on text change
+                    onChangeText={setInput}
                     placeholder="Type a message"
                 />
-                <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
+                <TouchableOpacity onPress={() => {
+                    console.log('Send button clicked');
+                    sendMessage();
+                }} style={styles.sendButton}>
                     <Text style={styles.sendButtonText}>Send</Text>
                 </TouchableOpacity>
             </View>

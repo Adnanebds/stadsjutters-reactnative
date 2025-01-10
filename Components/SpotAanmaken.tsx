@@ -34,7 +34,7 @@ const SpotAanmaken = ({ navigation }: any) => {
 
     const fetchCategoryOptions = async () => {
       try {
-        const response = await fetch('https://1a24-86-93-44-129.ngrok-free.app/api/category');
+        const response = await fetch('https://ece3-86-93-44-129.ngrok-free.app/api/category');
         const data = await response.json();
         console.log('Fetched Categories:', data);
         if (Array.isArray(data)) {
@@ -124,7 +124,7 @@ const SpotAanmaken = ({ navigation }: any) => {
     console.log('Form Data:', formData);
 
     try {
-      const response = await fetch('https://1a24-86-93-44-129.ngrok-free.app/api/spot', {
+      const response = await fetch('https://ece3-86-93-44-129.ngrok-free.app/api/spot', {
         method: 'POST',
         headers: {
           'Content-Type': 'multipart/form-data',

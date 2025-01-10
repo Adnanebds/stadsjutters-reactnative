@@ -1,0 +1,35 @@
+name: Expo Publish
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Set up Node.js environment
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      # Install dependencies
+      - name: Install Dependencies
+        run: |
+          npm install -g expo-cli
+          npm install
+
+      # Login to Expo using the token
+      - name: Login to Expo
+        run: expo login --token ${{ secrets.EXPO_TOKEN }}
+
+      # Publish to Expo
+      - name: Publish to Expo
+        run: expo publish

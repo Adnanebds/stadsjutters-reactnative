@@ -31,16 +31,6 @@ const LoginPage = () => {
     }, []);
 
 
-    useEffect(() => {
-      const checkLoginStatus = async () => {
-          const userSession = await AsyncStorage.getItem('userSession');
-          if (userSession) {
-              navigation.navigate('Welcome'); // Redirect to welcome page if already logged in
-          }
-      };
-      checkLoginStatus();
-  }, []);
-
     const onLoginButtonClicked = async () => {
         if (!email.trim() || !password) {
             Alert.alert('Error', 'Please enter both email and password');
@@ -48,7 +38,7 @@ const LoginPage = () => {
         }
 
         try {
-            const response = await axios.post('https://a845-86-93-44-129.ngrok-free.app/api/login', {
+            const response = await axios.post('https://ece3-86-93-44-129.ngrok-free.app/api/login', {
                 Email: email,
                 Password: password
             });

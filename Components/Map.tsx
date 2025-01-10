@@ -4,7 +4,9 @@ import MapView, { Marker } from 'react-native-maps';
 import Modal from 'react-native-modal';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
-
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 // Define the Spot interface for type safety
 interface Spot {
   MaterialID: string;
@@ -12,7 +14,9 @@ interface Spot {
   description: string;
   Latitude: string;
   Longitude: string;
+  UserID: number; // Add this property
 }
+
 
 // Define the props for the SpotModal component
 interface SpotModalProps {
@@ -54,8 +58,28 @@ const getCoordinatesForCity = async (cityName: string): Promise<{ lat: number; l
 
 // SpotModal component to display spot details
 const SpotModal: React.FC<SpotModalProps> = ({ isVisible, spot, onClose }) => {
+  const [userSession, setUserSession] = useState<string | null>(null);
+
+  type RootStackParamList = {
+    ChatScreen: { senderId: string; receiverId: string };
+  };
+  
+
+type ChatScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ChatScreen'>;
   const [location, setLocation] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
+
+  
+  const navigation = useNavigation<ChatScreenNavigationProp>();
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const session = await AsyncStorage.getItem('userSession');
+      setUserSession(session);
+      console.log('User session: ', session);  // Check the value of session
+    };
+    checkLoginStatus();
+  }, []);
 
   useEffect(() => {
     if (spot) {
@@ -68,13 +92,20 @@ const SpotModal: React.FC<SpotModalProps> = ({ isVisible, spot, onClose }) => {
     }
   }, [spot]);
 
-  if (!spot) return null;
-
-  // Function to handle chat button press
   const handleChatPress = () => {
-    console.log(`Chat initiated for ${spot.title}`);
-    onClose(); // Close modal after initiating chat
+    console.log(spot); // Check if userID exists
+    if (userSession && spot && spot?.UserID) {
+      navigation.navigate('ChatScreen', {
+        senderId: userSession.toString(),
+        receiverId: spot.UserID.toString(),
+      });
+    } else {
+      Alert.alert('Error', 'No user session found or spot owner is missing.');
+    }
   };
+  
+
+  if (!spot) return null;  // Ensure spot is always available when hooks run
 
   return (
     <Modal
@@ -96,7 +127,7 @@ const SpotModal: React.FC<SpotModalProps> = ({ isVisible, spot, onClose }) => {
           {loading ? (
             <ActivityIndicator size="small" color="#0000ff" />
           ) : (
-            <Text style={styles.location}>Locatie: {location}</Text>
+            <Text style={styles.location}>Location: {location}</Text>
           )}
         </ScrollView>
         <TouchableOpacity style={styles.chatButton} onPress={handleChatPress}>
@@ -106,6 +137,7 @@ const SpotModal: React.FC<SpotModalProps> = ({ isVisible, spot, onClose }) => {
     </Modal>
   );
 };
+
 
 // Main MapScreen component
 const MapScreen: React.FC = () => {
@@ -121,7 +153,7 @@ const MapScreen: React.FC = () => {
   useEffect(() => {
     const fetchSpots = async () => {
       try {
-        const response = await axios.get<Spot[]>('https://1a24-86-93-44-129.ngrok-free.app/api/spot');
+        const response = await axios.get<Spot[]>('https://ece3-86-93-44-129.ngrok-free.app/api/spot');
         setSpots(response.data);
       } catch (error) {
         console.error('Error fetching spots data: ', error);
