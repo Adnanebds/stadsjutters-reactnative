@@ -23,13 +23,14 @@ jobs:
       # Install dependencies
       - name: Install Dependencies
         run: |
-          npm install -g expo-cli
+          npm install -g @expo/cli
           npm install
 
-      # Login to Expo using the token
+      # Login to Expo (Optional)
+      # You can comment this out if not needed
       - name: Login to Expo
-        run: expo login --token ${{ secrets.EXPO_TOKEN }}
+        run: echo "${{ secrets.EXPO_TOKEN }}" | npx expo login --username "${{ secrets.EXPO_USERNAME }}" --password "${{ secrets.EXPO_PASSWORD }}"
 
       # Publish to Expo
       - name: Publish to Expo
-        run: expo publish
+        run: npx expo publish
