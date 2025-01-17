@@ -4,21 +4,22 @@ import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { registerForPushNotifications } from './Notifications';
+ 
 type RootStackParamList = {
     LoginPage: undefined;
     RegistrationPage: undefined;
     Welcome: undefined;
 };
-
+ 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'LoginPage'>;
-
+ 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    
+   
     const navigation = useNavigation<LoginScreenNavigationProp>();
-
+ 
     // Check if user is already logged in
     useEffect(() => {
         const checkLoginStatus = async () => {
@@ -29,23 +30,27 @@ const LoginPage = () => {
         };
         checkLoginStatus();
     }, []);
-
-
+ 
+ 
     const onLoginButtonClicked = async () => {
         if (!email.trim() || !password) {
             Alert.alert('Error', 'Please enter both email and password');
             return;
         }
-
+ 
         try {
             const response = await axios.post('https://ece3-86-93-44-129.ngrok-free.app/api/login', {
                 Email: email,
                 Password: password
             });
-
+ 
             console.log('Response:', response.data);
-
+ 
+ 
             if (response.status === 200) {
+ 
+              const userId = response.data.userId; // or however you get the user ID
+              await registerForPushNotifications(userId);
                 Alert.alert('Success', 'Login successful!');
                 await AsyncStorage.setItem('userSession', JSON.stringify(response.data)); // Store session data
                 navigation.navigate('Welcome'); // Navigate to welcome page
@@ -61,16 +66,16 @@ const LoginPage = () => {
             }
         }
     };
-
+ 
     const onRegisterTapped = () => {
         navigation.navigate('RegistrationPage');
     };
-
+ 
     return (
         <ScrollView contentContainerStyle={styles.container}>aa
             <View style={styles.content}>
                 <Text style={styles.welcomeText}>Welkom!</Text>
-
+ 
                 <View style={styles.inputContainer}>
                     <TextInput
                         style={styles.input}
@@ -80,7 +85,7 @@ const LoginPage = () => {
                         onChangeText={setEmail}
                     />
                 </View>
-
+ 
                 <View style={styles.inputContainer}>
                     <TextInput
                         style={styles.input}
@@ -90,11 +95,11 @@ const LoginPage = () => {
                         onChangeText={setPassword}
                     />
                 </View>
-
+ 
                 <TouchableOpacity style={styles.loginButton} onPress={onLoginButtonClicked}>
                     <Text style={styles.loginButtonText}>Login</Text>
                 </TouchableOpacity>
-
+ 
                 <View style={styles.registerContainer}>
                     <Text style={styles.grayText}>Nog geen account? </Text>
                     <TouchableOpacity onPress={onRegisterTapped}>
@@ -105,7 +110,7 @@ const LoginPage = () => {
         </ScrollView>
     );
 };
-
+ 
   const styles = StyleSheet.create({
     container: {
       flexGrow: 1,
@@ -185,5 +190,5 @@ const LoginPage = () => {
       fontSize: 20,
     },
   });
-
+ 
   export default LoginPage;
